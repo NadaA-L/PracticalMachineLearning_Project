@@ -2,15 +2,13 @@
 title: "PracticalMachineLearning Project"
 author: "Nada Alami-Louati"
 date: "5/29/2020"
-output: html_document
+output: html_document : default
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 **Downloading the data**
 We use the RCurl package to download the datasets using the provided links. We were provided with two datasets, labeled as training and testing respectively. We will use the "testing" dataset as our validation test, and we will later split the "training" dataset into train and test sets, after cleaning it.
 ```{r}
+library(rmarkdown)
+library(knitr)
 library(RCurl)
 training_download <- getURL("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
 validation_download <- getURL("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
@@ -60,8 +58,8 @@ nzv(training, saveMetrics = TRUE)
 There are no zero covariates.
 
 **Splitting our data**
-```{r}
-set.seed(12345)
+```{r, set.seed(12345)}
+knitr::opts_chunk$set(cache = T)
 inTrain <- createDataPartition(y=training$classe, p=0.7, list=FALSE)
 train <- training[inTrain,]
 test <- training[-inTrain,]
@@ -72,7 +70,7 @@ We will use Random Forest, as it is an ensemble learning method with superior pr
 
   *Random Forest*
 ```{r}
-
+library(e1071)
 rfFit <-train(classe~.,data=train, method="rf",trControl=trainControl(method ="cv"))
 ```
 ```{r}
