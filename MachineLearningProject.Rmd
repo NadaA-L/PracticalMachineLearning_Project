@@ -1,0 +1,93 @@
+---
+title: "PracticalMachineLearning Project"
+author: "Nada Alami-Louati"
+date: "5/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**Downloading the data**
+We use the RCurl package to download the datasets using the provided links. We were provided with two datasets, labeled as training and testing respectively. We will use the "testing" dataset as our validation test, and we will later split the "training" dataset into train and test sets, after cleaning it.
+```{r}
+library(RCurl)
+training_download <- getURL("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+validation_download <- getURL("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+```
+Looking at the excel files, we notice that many of the variables are missing from both the training and validation sets. We define missing variables as those marked with *NA*, an empty space or *#DIV/O*.
+
+```{r}
+training <- read.csv(text=training_download, sep=',',na.strings = c("NA","","#DIV/O"))
+validation <- read.csv(text=validation_download, sep=',',na.strings = c("NA","","#DIV/O"))
+```
+**First look at the data**
+```{r}
+str(training)
+```
+The training set has 19622 observations and 160 variables. 
+```{r}
+str(validation)
+```
+The validation has 20 observations. We can clearly see that there are several variables with completely missing data in the two datasets.
+
+**Cleaning the data**
+
+*removing variables with all missing values*
+```{r}
+NACount <- apply(training,2,function(x) {sum(is.na(x))})
+training <- training[,-which(NACount != 0)]
+NACount <- apply(validation,2,function(x) {sum(is.na(x))}) 
+validation <- validation[,-which(NACount != 0)]
+str(training)
+```
+This simple step has reduced the number of variables from 160 to 60.
+
+*removing irrelevant variables*
+The first seven variables are related to the parameters of the studies (names of the study subjects, timestamps, etc.) They are not relevant to our prediction model, so we will omit them. 
+```{r}
+training <- training[,-c(1:7)]
+validation <- validation[,-c(1:7)]
+```
+We are now left with 53 variables. 
+
+*removing zero covariates*
+We will check for the presence of any near zero covariates.
+```{r}
+library(caret)
+nzv(training, saveMetrics = TRUE)
+```
+There are no zero covariates.
+
+**Splitting our data**
+```{r}
+set.seed(12345)
+inTrain <- createDataPartition(y=training$classe, p=0.7, list=FALSE)
+train <- training[inTrain,]
+test <- training[-inTrain,]
+```
+
+**Model Building**
+We will use Random Forest, as it is an ensemble learning method with superior predictive capabilities. We will use cross-validation to train our model, using the default values for the cross-validation parameters.  
+
+  *Random Forest*
+```{r}
+
+rfFit <-train(classe~.,data=train, method="rf",trControl=trainControl(method ="cv"))
+```
+```{r}
+rfFit
+```
+*testing*
+```{r}
+confusionMatrix(test$classe, predict(rfFit, test))
+```
+
+It seems that the model has an accuracy of 98.84%. This gives us **an out-of sample error of less than 2%**. Therefore, there really is no need to look for another model.
+
+**Predictions**
+```{r}
+predictions <- predict(rfFit, newdata=validation)
+predictions
+```
+
